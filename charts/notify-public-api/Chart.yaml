@@ -1,0 +1,11 @@
+apiVersion: v2
+name: notify-public-api
+description: Public notification callback API
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+# dependencies:
+#   - name: devops-library
+#     version: 0.1.0
+#     repository: oci://registry.example.com/charts
+# The devops-library chart is resolved from an OCI registry at package time.

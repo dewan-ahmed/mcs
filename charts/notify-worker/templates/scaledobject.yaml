@@ -1,0 +1,17 @@
+# Enable this ScaledObject after swapping the in-memory queue for a real broker.
+# apiVersion: keda.sh/v1alpha1
+# kind: ScaledObject
+# metadata:
+#   name: notify-worker
+# spec:
+#   scaleTargetRef:
+#     name: notify-worker
+#   minReplicaCount: 1
+#   maxReplicaCount: 10
+#   triggers:
+#     - type: rabbitmq
+#       metadata:
+#         protocol: amqp
+#         queueName: notifications
+#         mode: QueueLength
+#         value: "5"

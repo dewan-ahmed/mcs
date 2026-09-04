@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "notify-core-api.fullname" . }}
+  labels:
+    {{- include "notify-core-api.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "notify-core-api.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "notify-core-api.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "notify-core-api.serviceAccountName" . }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.containerPort }}
+              protocol: TCP
+          env:
+            - name: AppEnvironment
+              value: {{ .Values.appEnvironment | quote }}
+            - name: Logging__LogLevel__Default
+              value: {{ .Values.logging.logLevel | quote }}
+            - name: ASPNETCORE_URLS
+              value: "http://+:{{ .Values.containerPort }}"
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.probes.livenessPath }}
+              port: http
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.probes.readinessPath }}
+              port: http
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

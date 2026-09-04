@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+  <PropertyGroup>
+    <!-- Worker SDK injects Microsoft.Extensions.Hosting usings; this app stays BCL-only. -->
+    <ImplicitUsings>disable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Notify.Shared\Notify.Shared.csproj" />
+  </ItemGroup>
+</Project>

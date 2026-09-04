@@ -1,0 +1,29 @@
+replicaCount: 1
+
+image:
+  repository: notify-worker
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+appEnvironment: local
+
+logging:
+  logLevel: Information
+
+terminationGracePeriodSeconds: 30
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi

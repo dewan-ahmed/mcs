@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "notify-worker.fullname" . }}
+  labels:
+    {{- include "notify-worker.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "notify-worker.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "notify-worker.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "notify-worker.serviceAccountName" . }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: AppEnvironment
+              value: {{ .Values.appEnvironment | quote }}
+            - name: Logging__LogLevel__Default
+              value: {{ .Values.logging.logLevel | quote }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

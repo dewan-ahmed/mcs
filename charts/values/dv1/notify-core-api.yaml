@@ -1,0 +1,4 @@
+replicaCount: 1
+appEnvironment: dv1
+logging:
+  logLevel: Debug

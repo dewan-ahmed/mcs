@@ -1,0 +1,4 @@
+replicaCount: 2
+appEnvironment: qa1
+logging:
+  logLevel: Information
