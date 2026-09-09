@@ -107,6 +107,33 @@ pipeline:
                     dockerfile: src/Notify.Worker/Dockerfile
                     context: /harness/publish/worker
 
+              # helm package + OCI push for all 3 charts — same image (Core/Public/Worker) either way,
+              # so one login covers all three pushes.
+              - step:
+                  type: Run
+                  name: Package and Push Helm Charts
+                  identifier: package_push_helm
+                  spec:
+                    connectorRef: mcs_dockerhub_public
+                    image: alpine/helm:3.14.0
+                    shell: Sh
+                    envVariables:
+                      ACR_USER: <+secrets.getValue("mcs_acr_username")>
+                      ACR_PASS: <+secrets.getValue("mcs_acr_password")>
+                    command: |-
+                      set -e
+                      echo "$ACR_PASS" | helm registry login <+pipeline.variables.acr_login_server> \
+                        --username "$ACR_USER" --password-stdin
+                      mkdir -p /harness/helm-out
+                      for chart in notify-core-api notify-public-api notify-worker; do
+                        helm package charts/$chart \
+                          --version 0.1.<+pipeline.sequenceId> \
+                          --app-version <+codebase.commitSha> \
+                          -d /harness/helm-out
+                        helm push /harness/helm-out/${chart}-0.1.<+pipeline.sequenceId>.tgz \
+                          oci://<+pipeline.variables.acr_login_server>/helm
+                      done
+
           infrastructure:
             type: KubernetesDirect
             spec:
