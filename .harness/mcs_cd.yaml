@@ -1,0 +1,42 @@
+# MCS CD (dv1) — Phase 3 POC pipeline for github.com/dewan-ahmed/mcs
+# Single stage, multi-service NativeHelm deploy of all 3 workloads into dv1.
+# qa1 + approval gate come later, once that environment/infra exist.
+
+pipeline:
+  name: MCS CD dv1
+  identifier: mcs_cd
+  projectIdentifier: loandepotmcs
+  orgIdentifier: default
+  tags: { phase: "3", poc: "true" }
+
+  stages:
+    - stage:
+        name: Deploy dv1
+        identifier: deploy_dv1
+        type: Deployment
+        spec:
+          deploymentType: NativeHelm
+          services:
+            values:
+              - serviceRef: mcs_core_service
+              - serviceRef: mcs_public_service
+              - serviceRef: mcs_textmessage_worker
+          environment:
+            environmentRef: dv1
+            infrastructureDefinitions:
+              - identifier: dv1_infra
+          execution:
+            steps:
+              - step:
+                  name: Helm Deploy
+                  identifier: helm_deploy
+                  type: HelmDeploy
+                  timeout: 15m
+                  spec: {}
+            rollbackSteps:
+              - step:
+                  name: Helm Rollback
+                  identifier: helm_rollback
+                  type: HelmRollback
+                  timeout: 10m
+                  spec: {}
