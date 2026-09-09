@@ -1,7 +1,7 @@
 # MCS CI (net8) — Phase 1 POC pipeline for github.com/dewan-ahmed/mcs
 
 pipeline:
-  name: MCS CI (net8)
+  name: MCS CI net8
   identifier: mcs_ci
   projectIdentifier: loandepotmcs
   orgIdentifier: default
@@ -10,7 +10,7 @@ pipeline:
   variables:
     - name: acr_login_server
       type: String
-      default: "mcspocacr.azurecr.io"
+      value: "mcspocacr.azurecr.io"
 
   properties:
     ci:
