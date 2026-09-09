@@ -26,15 +26,6 @@ pipeline:
         type: CI
         spec:
           cloneCodebase: true
-          platform:
-            os: Linux
-            arch: Amd64
-          runtime:
-            type: Kubernetes
-            spec:
-              connectorRef: mcs_k8s_dv1
-              namespace: harness-build
-
           execution:
             steps:
               # Unit tests only — Notify.IntegrationTests needs a live endpoint, runs post-deploy instead.
