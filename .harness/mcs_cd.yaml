@@ -40,3 +40,9 @@ pipeline:
                   type: HelmRollback
                   timeout: 10m
                   spec: {}
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: StageRollback
