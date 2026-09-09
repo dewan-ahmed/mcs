@@ -1,24 +1,21 @@
-# MCS CI (net8) — Phase 1 POC pipeline for github.com/dewan-ahmed/mcs
-
 pipeline:
   name: MCS CI net8
   identifier: mcs_ci
   projectIdentifier: loandepotmcs
   orgIdentifier: default
-  tags: { phase: "1", poc: "true" }
-
+  tags:
+    phase: "1"
+    poc: "true"
   variables:
     - name: acr_login_server
       type: String
-      value: "mcspocacr.azurecr.io"
-
+      value: mcspocacr.azurecr.io
   properties:
     ci:
       codebase:
         connectorRef: mcs_github
         repoName: dewan-ahmed/mcs
         build: <+input>
-
   stages:
     - stage:
         name: Build and Push
@@ -28,7 +25,6 @@ pipeline:
           cloneCodebase: true
           execution:
             steps:
-              # Unit tests only — Notify.IntegrationTests needs a live endpoint, runs post-deploy instead.
               - step:
                   type: Run
                   name: Restore Build Test
@@ -51,7 +47,6 @@ pipeline:
                       spec:
                         paths:
                           - src/tests/**/unit-results.trx
-
               - step:
                   type: Run
                   name: Publish Workloads
@@ -66,8 +61,6 @@ pipeline:
                       dotnet publish Notify.Core.Api/Notify.Core.Api.csproj -c Release -o /harness/publish/core --no-restore
                       dotnet publish Notify.Public.Api/Notify.Public.Api.csproj -c Release -o /harness/publish/public --no-restore
                       dotnet publish Notify.Worker/Notify.Worker.csproj -c Release -o /harness/publish/worker --no-restore
-
-              # Kaniko build — context is the publish/ output dir, not the source folder.
               - step:
                   type: BuildAndPushDockerRegistry
                   name: Build and Push Core
@@ -80,7 +73,6 @@ pipeline:
                       - <+codebase.commitSha>
                     dockerfile: src/Notify.Core.Api/Dockerfile
                     context: /harness/publish/core
-
               - step:
                   type: BuildAndPushDockerRegistry
                   name: Build and Push Public
@@ -93,7 +85,6 @@ pipeline:
                       - <+codebase.commitSha>
                     dockerfile: src/Notify.Public.Api/Dockerfile
                     context: /harness/publish/public
-
               - step:
                   type: BuildAndPushDockerRegistry
                   name: Build and Push Worker
@@ -106,14 +97,14 @@ pipeline:
                       - <+codebase.commitSha>
                     dockerfile: src/Notify.Worker/Dockerfile
                     context: /harness/publish/worker
-
           infrastructure:
             type: KubernetesDirect
             spec:
               connectorRef: mcs_k8s_dv1
               namespace: harness-build
               automountServiceAccountToken: true
-
+              nodeSelector: {}
+              os: Linux
   triggers:
     - trigger:
         name: on_push_main
