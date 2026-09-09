@@ -1,0 +1,3 @@
+image:
+  repository: mcspocacr.azurecr.io/mcs/notify-worker
+  tag: <+artifact.tag>
