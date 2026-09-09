@@ -1,14 +1,11 @@
-# MCS CD (dv1) — Phase 3 POC pipeline for github.com/dewan-ahmed/mcs
-# Single stage, multi-service NativeHelm deploy of all 3 workloads into dv1.
-# qa1 + approval gate come later, once that environment/infra exist.
-
 pipeline:
   name: MCS CD dv1
   identifier: mcs_cd
   projectIdentifier: loandepotmcs
   orgIdentifier: default
-  tags: { phase: "3", poc: "true" }
-
+  tags:
+    phase: "3"
+    poc: "true"
   stages:
     - stage:
         name: Deploy dv1
@@ -19,10 +16,37 @@ pipeline:
           services:
             values:
               - serviceRef: mcs_core_service
+                serviceInputs:
+                  serviceDefinition:
+                    type: NativeHelm
+                    spec:
+                      artifacts:
+                        primary:
+                          primaryArtifactRef: <+input>
+                          sources: <+input>
               - serviceRef: mcs_public_service
+                serviceInputs:
+                  serviceDefinition:
+                    type: NativeHelm
+                    spec:
+                      artifacts:
+                        primary:
+                          primaryArtifactRef: <+input>
+                          sources: <+input>
               - serviceRef: mcs_textmessage_worker
+                serviceInputs:
+                  serviceDefinition:
+                    type: NativeHelm
+                    spec:
+                      artifacts:
+                        primary:
+                          primaryArtifactRef: <+input>
+                          sources: <+input>
+            metadata:
+              parallel: true
           environment:
             environmentRef: dv1
+            deployToAll: false
             infrastructureDefinitions:
               - identifier: dv1_infra
           execution:
@@ -32,7 +56,10 @@ pipeline:
                   identifier: helm_deploy
                   type: HelmDeploy
                   timeout: 15m
-                  spec: {}
+                  spec:
+                    skipDryRun: false
+                    ignoreReleaseHistFailStatus: false
+                    useUpgradeInstall: true
             rollbackSteps:
               - step:
                   name: Helm Rollback
