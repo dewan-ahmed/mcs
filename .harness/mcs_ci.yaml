@@ -1,0 +1,142 @@
+# MCS CI (net8) — Phase 1 POC pipeline for github.com/dewan-ahmed/mcs
+
+pipeline:
+  name: MCS CI (net8)
+  identifier: mcs_ci
+  projectIdentifier: loandepotmcs
+  orgIdentifier: default
+  tags: { phase: "1", poc: "true" }
+
+  variables:
+    - name: acr_login_server
+      type: String
+      default: "mcspocacr.azurecr.io"
+
+  properties:
+    ci:
+      codebase:
+        connectorRef: mcs_github
+        repoName: dewan-ahmed/mcs
+        build: <+input>
+
+  stages:
+    - stage:
+        name: Build and Push
+        identifier: build_and_push
+        type: CI
+        spec:
+          cloneCodebase: true
+          platform:
+            os: Linux
+            arch: Amd64
+          runtime:
+            type: Kubernetes
+            spec:
+              connectorRef: mcs_k8s_dv1
+              namespace: harness-build
+
+          execution:
+            steps:
+              # Unit tests only — Notify.IntegrationTests needs a live endpoint, runs post-deploy instead.
+              - step:
+                  type: Run
+                  name: Restore Build Test
+                  identifier: restore_build_test
+                  spec:
+                    connectorRef: account.harnessImage
+                    image: mcr.microsoft.com/dotnet/sdk:8.0
+                    shell: Sh
+                    command: |-
+                      set -e
+                      cd src
+                      dotnet restore NotifyService.sln
+                      dotnet build NotifyService.sln -c Release --no-restore
+                      dotnet test tests/Notify.UnitTests/Notify.UnitTests.csproj \
+                        -c Release --no-build \
+                        --logger "trx;LogFileName=unit-results.trx" \
+                        --results-directory /harness/test-results
+                    reports:
+                      type: JUnit
+                      spec:
+                        paths:
+                          - src/tests/**/unit-results.trx
+
+              - step:
+                  type: Run
+                  name: Publish Workloads
+                  identifier: publish_workloads
+                  spec:
+                    connectorRef: account.harnessImage
+                    image: mcr.microsoft.com/dotnet/sdk:8.0
+                    shell: Sh
+                    command: |-
+                      set -e
+                      cd src
+                      dotnet publish Notify.Core.Api/Notify.Core.Api.csproj -c Release -o /harness/publish/core --no-restore
+                      dotnet publish Notify.Public.Api/Notify.Public.Api.csproj -c Release -o /harness/publish/public --no-restore
+                      dotnet publish Notify.Worker/Notify.Worker.csproj -c Release -o /harness/publish/worker --no-restore
+
+              # Kaniko build — context is the publish/ output dir, not the source folder.
+              - step:
+                  type: BuildAndPushDockerRegistry
+                  name: Build and Push Core
+                  identifier: build_push_core
+                  spec:
+                    connectorRef: mcs_acr
+                    repo: <+pipeline.variables.acr_login_server>/mcs/notify-core-api
+                    tags:
+                      - <+pipeline.sequenceId>
+                      - <+codebase.commitSha>
+                    dockerfile: src/Notify.Core.Api/Dockerfile
+                    context: /harness/publish/core
+
+              - step:
+                  type: BuildAndPushDockerRegistry
+                  name: Build and Push Public
+                  identifier: build_push_public
+                  spec:
+                    connectorRef: mcs_acr
+                    repo: <+pipeline.variables.acr_login_server>/mcs/notify-public-api
+                    tags:
+                      - <+pipeline.sequenceId>
+                      - <+codebase.commitSha>
+                    dockerfile: src/Notify.Public.Api/Dockerfile
+                    context: /harness/publish/public
+
+              - step:
+                  type: BuildAndPushDockerRegistry
+                  name: Build and Push Worker
+                  identifier: build_push_worker
+                  spec:
+                    connectorRef: mcs_acr
+                    repo: <+pipeline.variables.acr_login_server>/mcs/notify-worker
+                    tags:
+                      - <+pipeline.sequenceId>
+                      - <+codebase.commitSha>
+                    dockerfile: src/Notify.Worker/Dockerfile
+                    context: /harness/publish/worker
+
+          infrastructure:
+            type: KubernetesDirect
+            spec:
+              connectorRef: mcs_k8s_dv1
+              namespace: harness-build
+              automountServiceAccountToken: true
+
+  triggers:
+    - trigger:
+        name: on_push_main
+        identifier: on_push_main
+        enabled: true
+        source:
+          type: Webhook
+          spec:
+            type: Github
+            spec:
+              connectorRef: mcs_github
+              autoAbortPreviousExecutions: true
+              payloadConditions:
+                - key: targetBranch
+                  operator: Equals
+                  value: main
+              event: Push
