@@ -34,6 +34,7 @@ pipeline:
                   name: Restore Build Test
                   identifier: restore_build_test
                   spec:
+                    connectorRef: mcs_mcr_public
                     image: mcr.microsoft.com/dotnet/sdk:8.0
                     shell: Sh
                     command: |-
@@ -56,6 +57,7 @@ pipeline:
                   name: Publish Workloads
                   identifier: publish_workloads
                   spec:
+                    connectorRef: mcs_mcr_public
                     image: mcr.microsoft.com/dotnet/sdk:8.0
                     shell: Sh
                     command: |-
