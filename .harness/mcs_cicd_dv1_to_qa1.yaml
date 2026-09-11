@@ -242,6 +242,7 @@ pipeline:
                     approvers:
                       userGroups:
                         - mcs_qa_approvers
+                        - _project_all_users
                       minimumCount: 1
                       disallowPipelineExecutor: true
                     approverInputs: []
