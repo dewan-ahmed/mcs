@@ -223,5 +223,123 @@ pipeline:
                 - AllErrors
               action:
                 type: StageRollback
+    - stage:
+        name: Approve QA1
+        identifier: approve_qa1
+        type: Approval
+        spec:
+          execution:
+            steps:
+              - step:
+                  name: Approve QA1
+                  identifier: qa1_gate
+                  type: HarnessApproval
+                  timeout: 1d
+                  spec:
+                    approvalMessage: Approve promotion of MCS to QA1. Verify dv1 is healthy first.
+                    includePipelineExecutionHistory: true
+                    isAutoRejectEnabled: false
+                    approvers:
+                      userGroups:
+                        - mcs_qa_approvers
+                      minimumCount: 1
+                      disallowPipelineExecutor: true
+                    approverInputs: []
+    - stage:
+        name: Deploy qa1
+        identifier: deploy_qa1
+        type: Deployment
+        spec:
+          deploymentType: NativeHelm
+          services:
+            values:
+              - serviceRef: mcs_core_service
+                serviceInputs:
+                  serviceDefinition:
+                    type: NativeHelm
+                    spec:
+                      manifests:
+                        - manifest:
+                            identifier: core_helm_chart
+                            type: HelmChart
+                            spec:
+                              chartVersion: 0.1.<+pipeline.sequenceId>
+                      artifacts:
+                        primary:
+                          primaryArtifactRef: core_docker_artifact
+                          sources:
+                            - identifier: core_docker_artifact
+                              type: DockerRegistry
+                              spec:
+                                tag: <+pipeline.sequenceId>
+              - serviceRef: mcs_public_service
+                serviceInputs:
+                  serviceDefinition:
+                    type: NativeHelm
+                    spec:
+                      manifests:
+                        - manifest:
+                            identifier: public_helm_chart
+                            type: HelmChart
+                            spec:
+                              chartVersion: 0.1.<+pipeline.sequenceId>
+                      artifacts:
+                        primary:
+                          primaryArtifactRef: public_docker_artifact
+                          sources:
+                            - identifier: public_docker_artifact
+                              type: DockerRegistry
+                              spec:
+                                tag: <+pipeline.sequenceId>
+              - serviceRef: mcs_textmessage_worker
+                serviceInputs:
+                  serviceDefinition:
+                    type: NativeHelm
+                    spec:
+                      manifests:
+                        - manifest:
+                            identifier: worker_helm_chart
+                            type: HelmChart
+                            spec:
+                              chartVersion: 0.1.<+pipeline.sequenceId>
+                      artifacts:
+                        primary:
+                          primaryArtifactRef: worker_docker_artifact
+                          sources:
+                            - identifier: worker_docker_artifact
+                              type: DockerRegistry
+                              spec:
+                                tag: <+pipeline.sequenceId>
+            metadata:
+              parallel: true
+          environment:
+            environmentRef: qa1
+            deployToAll: false
+            infrastructureDefinitions:
+              - identifier: qa1_infra
+          execution:
+            steps:
+              - step:
+                  name: Helm Deploy
+                  identifier: helm_deploy
+                  type: HelmDeploy
+                  timeout: 15m
+                  spec:
+                    skipDryRun: false
+                    ignoreReleaseHistFailStatus: false
+                    useUpgradeInstall: true
+            rollbackSteps:
+              - step:
+                  name: Helm Rollback
+                  identifier: helm_rollback
+                  type: HelmRollback
+                  timeout: 10m
+                  spec: {}
+        failureStrategies:
+          - onFailure:
+              errors:
+                - AllErrors
+              action:
+                type: StageRollback
   identifier: MCS_CICD_dv1_to_qa1
   name: MCS CICD dv1 to qa1
