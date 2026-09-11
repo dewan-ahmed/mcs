@@ -1,5 +1,7 @@
 # NotifyService
 
+test random commit SHA a085d496676eec3ef1f0ad2da26ae2f7f4adc7944e09153a50c9002431a64f96
+
 Toy notification system used to exercise a Kubernetes CI/CD pipeline. Logic is intentionally trivial. **All backing services are in-memory stand-ins** — nothing is shared across processes, and nothing talks to a database, broker, or cloud provider.
 
 ## Workloads
