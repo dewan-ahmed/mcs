@@ -1,17 +1,3 @@
-# MCS CI/CD (net8) — combined pipeline, Phase 1/3 POC for github.com/dewan-ahmed/mcs
-#
-# Replaces .harness/mcs_ci.yaml + .harness/mcs_cd.yaml with a single pipeline.
-# One pipeline means <+pipeline.sequenceId> is identical in the CI stage and the
-# deploy stage, so the image tag and chart version produced by CI are the exact
-# ones CD consumes — no parameter passing, no drift.
-#
-# PREREQUISITES (see notes at the bottom of this file):
-#   1. chartVersion must be <+input> on all three services.
-#   2. The artifact-source and manifest identifiers below must match the real
-#      identifiers on each service (created in the UI, so they are placeholders here).
-#
-# Triggers are deliberately omitted — manual runs for now.
-
 pipeline:
   name: MCS CICD dv1
   identifier: mcs_cicd
@@ -20,23 +6,17 @@ pipeline:
   tags:
     phase: "3"
     poc: "true"
-
   variables:
     - name: acr_login_server
       type: String
-      value: "mcspocacr.azurecr.io"
-
+      value: mcspocacr.azurecr.io
   properties:
     ci:
       codebase:
         connectorRef: mcs_github
         repoName: dewan-ahmed/mcs
         build: <+input>
-
   stages:
-    # ------------------------------------------------------------------
-    # STAGE 1 — CI: build, unit test, publish, 3 images, 3 OCI Helm charts
-    # ------------------------------------------------------------------
     - stage:
         name: Build and Push
         identifier: build_and_push
@@ -45,7 +25,6 @@ pipeline:
           cloneCodebase: true
           execution:
             steps:
-              # Unit tests only — Notify.IntegrationTests needs a live endpoint, runs post-deploy instead.
               - step:
                   type: Run
                   name: Restore Build Test
@@ -68,7 +47,6 @@ pipeline:
                       spec:
                         paths:
                           - src/tests/**/unit-results.trx
-
               - step:
                   type: Run
                   name: Publish Workloads
@@ -83,8 +61,6 @@ pipeline:
                       dotnet publish Notify.Core.Api/Notify.Core.Api.csproj -c Release -o /harness/publish/core --no-restore
                       dotnet publish Notify.Public.Api/Notify.Public.Api.csproj -c Release -o /harness/publish/public --no-restore
                       dotnet publish Notify.Worker/Notify.Worker.csproj -c Release -o /harness/publish/worker --no-restore
-
-              # Kaniko build — context is the publish/ output dir, not the source folder.
               - step:
                   type: BuildAndPushDockerRegistry
                   name: Build and Push Core
@@ -97,7 +73,6 @@ pipeline:
                       - <+codebase.commitSha>
                     dockerfile: src/Notify.Core.Api/Dockerfile
                     context: /harness/publish/core
-
               - step:
                   type: BuildAndPushDockerRegistry
                   name: Build and Push Public
@@ -110,7 +85,6 @@ pipeline:
                       - <+codebase.commitSha>
                     dockerfile: src/Notify.Public.Api/Dockerfile
                     context: /harness/publish/public
-
               - step:
                   type: BuildAndPushDockerRegistry
                   name: Build and Push Worker
@@ -123,8 +97,6 @@ pipeline:
                       - <+codebase.commitSha>
                     dockerfile: src/Notify.Worker/Dockerfile
                     context: /harness/publish/worker
-
-              # helm package + OCI push for all 3 charts — one login covers all three pushes.
               - step:
                   type: Run
                   name: Package and Push Helm Charts
@@ -149,19 +121,14 @@ pipeline:
                         helm push /harness/helm-out/${chart}-0.1.<+pipeline.sequenceId>.tgz \
                           oci://<+pipeline.variables.acr_login_server>/helm
                       done
-
           infrastructure:
             type: KubernetesDirect
             spec:
               connectorRef: mcs_k8s_dv1
               namespace: harness-build
               automountServiceAccountToken: true
-
-    # ------------------------------------------------------------------
-    # STAGE 2 — CD: NativeHelm deploy of all three services into dv1
-    # Image tag and chart version are taken from THIS pipeline's sequenceId,
-    # which is the same value the CI stage above just published under.
-    # ------------------------------------------------------------------
+              nodeSelector: {}
+              os: Linux
     - stage:
         name: Deploy dv1
         identifier: deploy_dv1
@@ -189,7 +156,6 @@ pipeline:
                               type: DockerRegistry
                               spec:
                                 tag: <+pipeline.sequenceId>
-
               - serviceRef: mcs_public_service
                 serviceInputs:
                   serviceDefinition:
@@ -209,7 +175,6 @@ pipeline:
                               type: DockerRegistry
                               spec:
                                 tag: <+pipeline.sequenceId>
-
               - serviceRef: mcs_textmessage_worker
                 serviceInputs:
                   serviceDefinition:
@@ -260,34 +225,3 @@ pipeline:
                 - AllErrors
               action:
                 type: StageRollback
-
-# ------------------------------------------------------------------
-# NOTES
-#
-# 1. chartVersion as <+input>
-#    Each of the three services must have chartVersion: <+input> in its manifest
-#    definition, or the manifests block above will fail schema validation
-#    ("field is not a runtime input"). Flip it in Services -> <service> -> Manifest.
-#    Without this the deploy stage silently installs a pinned chart version and
-#    the CI chart push has no effect on what actually runs.
-#
-# 2. Identifiers — CONFIRMED against the three services:
-#      mcs_core_service        core_helm_chart   / core_docker_artifact   (mcs/notify-core-api)
-#      mcs_public_service      public_helm_chart / public_docker_artifact (mcs/notify-public-api)
-#      mcs_textmessage_worker  worker_helm_chart / worker_docker_artifact (mcs/notify-worker)
-#    All three manifests use store mcs_acr_helm with Associated Values YAML
-#    File = values-dv1.yaml, and all three artifacts use connector mcs_acr.
-#
-# 3. Image tag flows through values-dv1.yaml
-#    charts/notify-*/values-dv1.yaml pins image.tag to <+artifact.tag>, which now
-#    resolves to <+pipeline.sequenceId> via the artifact source. No change needed
-#    there. The chart .tgz must have been built by a CI run that already contained
-#    values-dv1.yaml — true for anything from the CD blocker #3 fix onward. 
-#
-# 4. Approval gate
-#    When qa1 lands, insert an Approval stage between deploy_dv1 and deploy_qa1.
-#    Note for the client report: with a combined pipeline, whoever runs it is the
-#    pipeline executor, so disallowPipelineExecutor: true will block that same
-#    person from approving their own promotion — which is the intended behaviour
-#    per the plan, but worth demonstrating deliberately rather than discovering.
-# ------------------------------------------------------------------
