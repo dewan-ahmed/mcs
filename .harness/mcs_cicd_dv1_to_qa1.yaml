@@ -241,7 +241,7 @@ pipeline:
                     isAutoRejectEnabled: false
                     approvers:
                       userGroups:
-                        - _project_all_users
+                        - DewanUG
                       minimumCount: 1
                       disallowPipelineExecutor: true
                     approverInputs: []
