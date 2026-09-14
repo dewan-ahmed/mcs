@@ -49,7 +49,7 @@ pipeline:
                               - src/tests/**/unit-results.trx
                   - step:
                       type: Semgrep
-                      name: SAST Scan (Semgrep)
+                      name: SAST Scan Semgrep
                       identifier: sast_semgrep
                       spec:
                         mode: orchestration
@@ -61,7 +61,6 @@ pipeline:
                           log:
                             level: info
                           fail_on_severity: critical
-
               - step:
                   type: Run
                   name: Code Coverage Report
@@ -80,7 +79,6 @@ pipeline:
                         -reporttypes:"TextSummary;Html"
                       echo "----- Coverage Summary -----"
                       cat /harness/coverage-report/Summary.txt
-
               - step:
                   type: Run
                   name: Publish Workloads
@@ -95,7 +93,6 @@ pipeline:
                       dotnet publish Notify.Core.Api/Notify.Core.Api.csproj -c Release -o /harness/publish/core --no-restore
                       dotnet publish Notify.Public.Api/Notify.Public.Api.csproj -c Release -o /harness/publish/public --no-restore
                       dotnet publish Notify.Worker/Notify.Worker.csproj -c Release -o /harness/publish/worker --no-restore
-
               - step:
                   type: BuildAndPushDockerRegistry
                   name: Build and Push Core
@@ -108,7 +105,6 @@ pipeline:
                       - <+codebase.commitSha>
                     dockerfile: src/Notify.Core.Api/Dockerfile
                     context: /harness/publish/core
-
               - step:
                   type: BuildAndPushDockerRegistry
                   name: Build and Push Public
@@ -121,7 +117,6 @@ pipeline:
                       - <+codebase.commitSha>
                     dockerfile: src/Notify.Public.Api/Dockerfile
                     context: /harness/publish/public
-
               - step:
                   type: BuildAndPushDockerRegistry
                   name: Build and Push Worker
@@ -134,7 +129,6 @@ pipeline:
                       - <+codebase.commitSha>
                     dockerfile: src/Notify.Worker/Dockerfile
                     context: /harness/publish/worker
-
               - parallel:
                   - step:
                       type: AquaTrivy
@@ -205,7 +199,6 @@ pipeline:
                           tag: <+pipeline.sequenceId>
                           access_id: <+secrets.getValue("mcs_acr_username")>
                           access_token: <+secrets.getValue("mcs_acr_password")>
-
               - step:
                   type: Run
                   name: Package and Push Helm Charts
@@ -238,7 +231,6 @@ pipeline:
               automountServiceAccountToken: true
               nodeSelector: {}
               os: Linux
-
     - stage:
         name: Deploy dv1
         identifier: deploy_dv1
@@ -337,7 +329,6 @@ pipeline:
                 type: StageRollback
         delegateSelectors:
           - mcs-onprem-dv1
-
     - stage:
         name: Approve QA1
         identifier: approve_qa1
@@ -360,7 +351,6 @@ pipeline:
                       minimumCount: 1
                       disallowPipelineExecutor: false
                     approverInputs: []
-
     - stage:
         name: Deploy qa1
         identifier: deploy_qa1
@@ -459,7 +449,6 @@ pipeline:
                 type: StageRollback
         delegateSelectors:
           - mcs-onprem-dv1
-
     - stage:
         name: Approve Prod
         identifier: approve_prod
@@ -482,7 +471,6 @@ pipeline:
                       minimumCount: 1
                       disallowPipelineExecutor: false
                     approverInputs: []
-
     - stage:
         name: Deploy prod
         identifier: deploy_prod
