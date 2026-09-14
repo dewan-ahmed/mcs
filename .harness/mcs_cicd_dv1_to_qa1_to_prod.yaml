@@ -76,7 +76,7 @@ pipeline:
                       reportgenerator \
                         -reports:"/harness/test-results/**/coverage.cobertura.xml" \
                         -targetdir:/harness/coverage-report \
-                        -reporttypes:"TextSummary;Html"
+                        -reporttypes:"TextSummary;Html;lcov"
                       echo "----- Coverage Summary -----"
                       cat /harness/coverage-report/Summary.txt
               - step:
