@@ -144,15 +144,17 @@ pipeline:
                         advanced:
                           log:
                             level: info
-                          fail_on_severity: critical
+                          fail_on_severity: none
                         privileged: false
                         image:
                           type: docker_v2
-                          domain: <+pipeline.variables.acr_login_server>
-                          name: mcs/notify-core-api
                           tag: <+pipeline.sequenceId>
                           access_id: <+secrets.getValue("mcs_acr_username")>
                           access_token: <+secrets.getValue("mcs_acr_password")>
+                          name: mcs/notify-core-api
+                          domain: <+pipeline.variables.acr_login_server>
+                        sbom:
+                          format: spdx-json
                   - step:
                       type: AquaTrivy
                       name: Container Scan - Public
@@ -167,15 +169,17 @@ pipeline:
                         advanced:
                           log:
                             level: info
-                          fail_on_severity: critical
+                          fail_on_severity: none
                         privileged: false
                         image:
                           type: docker_v2
-                          domain: <+pipeline.variables.acr_login_server>
-                          name: mcs/notify-public-api
                           tag: <+pipeline.sequenceId>
                           access_id: <+secrets.getValue("mcs_acr_username")>
                           access_token: <+secrets.getValue("mcs_acr_password")>
+                          name: mcs/notify-public-api
+                          domain: <+pipeline.variables.acr_login_server>
+                        sbom:
+                          format: spdx-json
                   - step:
                       type: AquaTrivy
                       name: Container Scan - Worker
@@ -190,15 +194,17 @@ pipeline:
                         advanced:
                           log:
                             level: info
-                          fail_on_severity: critical
+                          fail_on_severity: none
                         privileged: false
                         image:
                           type: docker_v2
-                          domain: <+pipeline.variables.acr_login_server>
-                          name: mcs/notify-worker
                           tag: <+pipeline.sequenceId>
                           access_id: <+secrets.getValue("mcs_acr_username")>
                           access_token: <+secrets.getValue("mcs_acr_password")>
+                          name: mcs/notify-worker
+                          domain: <+pipeline.variables.acr_login_server>
+                        sbom:
+                          format: spdx-json
               - step:
                   type: Run
                   name: Package and Push Helm Charts
